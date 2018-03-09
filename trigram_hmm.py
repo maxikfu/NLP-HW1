@@ -12,6 +12,7 @@ def counting_tri_bi_uni_grams(training_file_path):
     transition_count = {}
     emission_count = {}
     word_counting = {}
+    token_language_count = {}
     spa_emission_count = {}
     eng_emission_count = {}
     tag1 = None
@@ -39,10 +40,16 @@ def counting_tri_bi_uni_grams(training_file_path):
             previous_tag = None  # for computing start to tag
         else:
             # for smoothing
+
             if list_line[0] in word_counting:
                 word_counting[list_line[0]] += 1
             else:
                 word_counting[list_line[0]] = 1
+            tu = tuple([list_line[0], list_line[1]])
+            if tu in token_language_count:
+                token_language_count[tu] += 1
+            else:
+                token_language_count[tu] = 1
             if list_line[2] in tag_count_dictionary:  # counting tag occurrences
                 tag_count_dictionary[list_line[2]] += 1  # counting delimiter for emission
             else:
@@ -121,7 +128,8 @@ def counting_tri_bi_uni_grams(training_file_path):
                     else:
                         unseen_dictionary[tuple([key[0], 'unseen_word'])] = 1
     emission_count.update(unseen_dictionary)
-    return emission_count,spa_emission_count,eng_emission_count,tag_count_dictionary,spa_tag_count,eng_tag_count,transition_count, word_counting, sentence_counter
+    return emission_count,spa_emission_count,eng_emission_count,tag_count_dictionary,spa_tag_count,\
+           eng_tag_count,transition_count, word_counting, sentence_counter,token_language_count
 
 
 def deleted_interpolation(transition_matrix,tag_count ,token_dictionary):
@@ -170,7 +178,8 @@ def choosing_language(lang,emis,spa_emis,eng_emis,tag,spa_tag,eng_tag):
     return lan_emission
 
 
-def viterbi(test_data_path, state_graph, tag_count, transition_count, emission_count, word_counting,norm_lambda,spa_emiss,eng_emiss,spa_tag,eng_tag):
+def viterbi(test_data_path, state_graph, tag_count, transition_count, emission_count, word_counting,norm_lambda,\
+            spa_emiss,eng_emiss,spa_tag,eng_tag,token_language):
     sentence_counter = tag_count['START']
     sentences = []  # aka OBSERVATIONS
     language_in_sentence = []  # just easier to print that in the file
@@ -216,14 +225,9 @@ def viterbi(test_data_path, state_graph, tag_count, transition_count, emission_c
             if tuple([state, sentence[0]]) in emission:  # this word in dictionary
                 c = emission[tuple([state, sentence[0]])]
                 b = c / tag_variable[state]
-            elif sentence[0] in word_counting_variable:  # unseen words handled in this part
+            elif tuple([sentence[0],lang[0]]) in token_language:  # unseen words handled in this part
 #toa avoid 0 when word in training set marked as different language but exists in general
-                if tuple([state, sentence[0]])  in emission_count:
-                    emission = emission_count
-                    c = emission[tuple([state, sentence[0]])]
-                    b = c / tag_variable[state]
-                else:
-                    b = 0
+                b = 0
             else:
                 if sentence[0][0].isupper() and state == 'PROPN':  # if First letter of the word Upper case more likely it will be PROPN
                     b = 0.5
@@ -251,13 +255,8 @@ def viterbi(test_data_path, state_graph, tag_count, transition_count, emission_c
                 if tuple([state, sentence[t]]) in emission:  # not new word to this tag
                     c = emission[tuple([state, sentence[t]])]
                     b = c / tag_variable[state]
-                elif sentence[t] in word_counting_variable:
+                elif tuple([sentence[t],lang[t]]) in token_language:
 #avoiding if languages got messed up
-                    if tuple([state, sentence[t]]) in emission_count:
-                        emission = emission_count
-                        c = emission[tuple([state, sentence[t]])]
-                        b = c / tag_variable[state]
-                    else:
                         b = 0
                 else:  # unseen words handels here
                     if sentence[t][0].isupper() and state == 'PROPN':# if First letter of the word Upper case more likely it will be PROPN
@@ -353,16 +352,15 @@ def cmpFiles(experiment_result_file, true_result_file):
 
 
 
-emission_count,spa_emiss,eng_emiss,tag_count_dictionary,spa_tag,eng_tag, transition_count, word_counting, sentence_counter = counting_tri_bi_uni_grams(
+emission_count,spa_emiss,eng_emiss,tag_count_dictionary,spa_tag,eng_tag, transition_count, word_counting, sentence_counter,tok_len = counting_tri_bi_uni_grams(
     'dataset/train.conll')
 state_graph = ['ADJ', 'ADP', 'ADV', 'AUX', 'CCONJ', 'DET', 'INTJ', 'NOUN', 'NUM', 'PART', 'PRON', 'PROPN', 'PUNCT',
                'SCONJ', 'SYM', 'VERB', 'X', 'UNK']
 lambda_param = deleted_interpolation(transition_count,tag_count_dictionary, word_counting)
-viterbi('dataset/small_dataset.txt', state_graph, tag_count_dictionary, transition_count,emission_count, word_counting, \
-        lambda_param, spa_emiss,eng_emiss,spa_tag,eng_tag)
-'''
+viterbi('dataset/dev.conll', state_graph, tag_count_dictionary, transition_count,emission_count, word_counting, \
+        lambda_param, spa_emiss,eng_emiss,spa_tag,eng_tag,tok_len)
+
 orig_stdout = sys.stdout
 fout = open('wrongpredictions.txt', 'w')
 sys.stdout = fout
 print('Accuracy ',cmpFiles('submission.txt','dataset/dev.conll'))
-'''
