@@ -217,7 +217,13 @@ def viterbi(test_data_path, state_graph, tag_count, transition_count, emission_c
                 c = emission[tuple([state, sentence[0]])]
                 b = c / tag_variable[state]
             elif sentence[0] in word_counting_variable:  # unseen words handled in this part
-                b = 0
+#toa avoid 0 when word in training set marked as different language but exists in general
+                if tuple([state, sentence[0]])  in emission_count:
+                    emission = emission_count
+                    c = emission[tuple([state, sentence[0]])]
+                    b = c / tag_variable[state]
+                else:
+                    b = 0
             else:
                 if sentence[0][0].isupper() and state == 'PROPN':  # if First letter of the word Upper case more likely it will be PROPN
                     b = 0.5
@@ -246,7 +252,13 @@ def viterbi(test_data_path, state_graph, tag_count, transition_count, emission_c
                     c = emission[tuple([state, sentence[t]])]
                     b = c / tag_variable[state]
                 elif sentence[t] in word_counting_variable:
-                    b = 0
+#avoiding if languages got messed up
+                    if tuple([state, sentence[t]]) in emission_count:
+                        emission = emission_count
+                        c = emission[tuple([state, sentence[t]])]
+                        b = c / tag_variable[state]
+                    else:
+                        b = 0
                 else:  # unseen words handels here
                     if sentence[t][0].isupper() and state == 'PROPN':# if First letter of the word Upper case more likely it will be PROPN
                         b = 0.5
@@ -288,6 +300,7 @@ def viterbi(test_data_path, state_graph, tag_count, transition_count, emission_c
         # termination step
         links_value = []
         backtrack_values = []
+
         for state in state_graph:
             # tag_variable = tag_count
             if tuple([state,'END']) in transition_variable:  # not new transition between tags
