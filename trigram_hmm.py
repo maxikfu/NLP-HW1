@@ -290,6 +290,19 @@ def viterbi(test_data_path, state_graph, tag_count, transition_count, emission_c
                         transition_probability = norm_lambda[0]*trigram_p_carrot + norm_lambda[1]*bigram_p_carrot + norm_lambda[2]*unigram_p_carrot
                         a = transition_probability
                         playing_with_dev_set = 0
+                        if sentence[t] in ["'m", "'s", "'re", "are", "is", "am", "was", "were", "have", "do", "did"]:
+                            if len(sentence) - 1 > t:
+                                if ((sentence[t] == "have" and sentence[t + 1] == "to") or (
+                                        sentence[t] in ["do", "did"] and sentence[t + 1] == "n't")) and state == 'AUX':
+                                    playing_with_dev_set = 0.05
+                                elif len(sentence[t + 1]) > 3:
+                                    if sentence[t + 1][-3:] == "ing" and state == 'AUX':
+                                        playing_with_dev_set = 0.05
+                        if (sentence[t] == 'no' and state == 'ADV') or \
+                                (sentence[t] == 'voy' and state == 'AUX') or \
+                                (sentence[t] == 'about' and state == 'ADP'):
+                            # (sentence[t]=='there' and (previouse_step_state in ['CCONJ','SCONJ']) and state == 'PRON'):
+                            playing_with_dev_set = 0.01
                         max_value_at_this_level.append(viterbi_matrix[previous_step_state][t - 1] * a * b + playing_with_dev_set)
                         max_backtrack_at_this_level.append(viterbi_matrix[previous_step_state][t - 1] * a)
                     links_value.append(max(max_value_at_this_level))
