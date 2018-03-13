@@ -235,7 +235,10 @@ def viterbi(test_data_path, state_graph, tag_count, transition_count, emission_c
                 b = 0
             else:#unseen words
                 if sentence[0][0].isupper():  # if First letter of the word Upper case more likely it will be PROPN
-                    b = emission_count[tuple([state, 'name'])] / tag_variable[state]
+                    if tuple([state,'name']) in emission_count:
+                        b = emission_count[tuple([state, 'name'])] / tag_variable[state]
+                    else:
+                        b = 0
                 else:
                     if tuple([state, 'unseen_word']) in emission_count:
                         b = emission_count[tuple([state, 'unseen_word'])] / tag_variable[state]
@@ -272,7 +275,10 @@ def viterbi(test_data_path, state_graph, tag_count, transition_count, emission_c
                         b = 0
                     else:  # unseen words handels here
                         if sentence[t][0].isupper():
-                            b = emission_count[tuple([state,'name'])] / tag_variable[state]
+                            if tuple([state,'name']) in emission_count:
+                                b = emission_count[tuple([state,'name'])] / tag_variable[state]
+                            else:
+                                b=0
                         else:
                             if tuple([state, 'unseen_word']) in emission_count:
                                 b = emission_count[tuple([state, 'unseen_word'])] / tag_variable[state]
