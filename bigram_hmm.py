@@ -231,7 +231,7 @@ def viterbi(test_data_path, state_graph, tag_count, transition_count, emission_c
                 c = emission[tuple([state, sentence[0]])]
                 b = c / tag_variable[state]
             elif tuple([sentence[0],lang[0]]) in token_language:
-#toa avoid 0 when word in training set marked as different language but exists in general
+#to avoid 0 when word in training set marked as different language but exists in general
                 b = 0
             else:#unseen words
                 if sentence[0][0].isupper():  # if First letter of the word Upper case more likely it will be PROPN
@@ -317,7 +317,7 @@ def viterbi(test_data_path, state_graph, tag_count, transition_count, emission_c
         print()
 
 
-def cmpFiles(experiment_result_file, true_result_file):
+def cmpFiles(experiment_result_file, true_result_file):#comapre 2 files line by line
     experiment_result = []
     true_result = []
     result = True
