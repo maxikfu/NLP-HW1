@@ -1,3 +1,8 @@
+trainFilePath = 'dataset/train.conll'
+testFilePath = 'dataset/test.conll'
+
+
+
 import sys
 import numpy as np
 
@@ -287,9 +292,27 @@ def viterbi(test_data_path, state_graph, tag_count, transition_count, emission_c
                                     b = 1 / tag_variable[state]
                                 else:
                                     b = 0
-                    playing_with_dev_set = 0
+                    if sentence[t] in ["'m", "'s", "'re", "are", "is", "am", "was", "were", "have", "do", "did","had"]:
+                        if len(sentence) - 1 > t:
+                            if ((sentence[t] == "have" and sentence[t + 1] == "to") or (
+                                    sentence[t] in ["do", "did","does"] and sentence[t + 1] == "n't")) and state == 'AUX':
+                                b = 1
+                            elif len(sentence[t + 1]) > 3:
+                                if sentence[t + 1][-3:] == "ing" and state == 'AUX':
+                                    b = 1
+                    if len(sentence)-1>t and sentence[t] == 'to': #handling "to" =) by looking into the future
+                        max_occur = 0
+                        max_tag = None
+                        for tup,val in emission.items():
+                            if sentence[t+1] in tup and (val > max_occur):
+                                max_occur = val
+                                max_tag = tup[0]
+                        if max_tag == 'VERB' and state == 'PART':
+                            b=1
+                        if max_tag != 'VERB' and state == 'PART':
+                            b=0
 
-                    links_value.append(viterbi_matrix[previous_step_state][t - 1] * a * b + playing_with_dev_set)
+                    links_value.append(viterbi_matrix[previous_step_state][t - 1] * a * b)
                     backtrack_values.append(viterbi_matrix[previous_step_state][t - 1] * a)
                 viterbi_matrix[state].append(max(links_value))
                 backpointer[state].append(state_graph[np.argmax(backtrack_values)])
@@ -349,15 +372,23 @@ def cmpFiles(experiment_result_file, true_result_file):#comapre 2 files line by 
 
 
 
-emission_count,spa_emiss,eng_emiss,tag_count_dictionary,spa_tag,eng_tag, transition_count, word_counting, sentence_counter,tok_len = counting_tri_bi_uni_grams(
-    'dataset/train.conll')
+def main(trainFilePath,testFilePath):
+    return trainFilePath,testFilePath
+
+if __name__ == "__main__":
+    if len(sys.argv) > 3:
+        trainFilePath,testFilePath = main(sys.argv[1],sys.argv[2])
+
+emission_count,spa_emiss,eng_emiss,tag_count_dictionary,spa_tag,eng_tag, transition_count, word_counting, sentence_counter,tok_len = counting_tri_bi_uni_grams(trainFilePath)
 state_graph = ['ADJ', 'ADP', 'ADV', 'AUX', 'CCONJ', 'DET', 'INTJ', 'NOUN', 'NUM', 'PART', 'PRON', 'PROPN', 'PUNCT',
                'SCONJ', 'SYM', 'VERB', 'X', 'UNK']
 lambda_param = deleted_interpolation(transition_count,tag_count_dictionary, word_counting)
-viterbi('dataset/dev.conll', state_graph, tag_count_dictionary, transition_count,emission_count, word_counting, \
-        lambda_param, spa_emiss,eng_emiss,spa_tag,eng_tag,tok_len)
 
+viterbi(testFilePath, state_graph, tag_count_dictionary, transition_count,emission_count, word_counting, \
+        lambda_param, spa_emiss,eng_emiss,spa_tag,eng_tag,tok_len)
+'''
 orig_stdout = sys.stdout
 fout = open('wrongpredictions.txt', 'w')
 sys.stdout = fout
 print('Accuracy ',cmpFiles('submission.txt','dataset/dev.conll'))
+'''
